@@ -84,7 +84,7 @@ namespace UpdateSotMEngineNuGetPackages
             try
             {
                 string currentPackagesPath = Path.Combine(DownloadsDirectory, "Current");
-                ExecuteCommand($"nuget install {engineName} -DirectDownload -NoCache -NonInteractive -OutputDirectory {currentPackagesPath} -Source {AzureFeed}", true);
+                ExecuteCommand($"nuget install {engineName} -DirectDownload -NoCache -NonInteractive -OutputDirectory {currentPackagesPath} -Source {AzureFeed}", false);
                 string currentNugetDll = Directory.GetFiles(currentPackagesPath, $"{engineName}.dll", SearchOption.AllDirectories).FirstOrDefault();
                 currentEngineFvi = FileVersionInfo.GetVersionInfo(currentNugetDll);
                 Console.WriteLine($"\n{engineName} version from nuget: {currentEngineFvi.FileVersion}");
