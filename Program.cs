@@ -23,7 +23,7 @@ namespace UpdateSotMEngineNuGetPackages
         static void Main(string[] args)
         {
             // Get args
-            if (args.Length < 5)
+            if (args.Length < 3)
             {
                 throw new ArgumentException("Not enough arguments");
             }
