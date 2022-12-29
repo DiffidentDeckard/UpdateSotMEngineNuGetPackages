@@ -84,19 +84,19 @@ namespace UpdateSotMEngineNuGetPackages
             try
             {
                 string currentPackagesPath = Path.Combine(DownloadsDirectory, "Current");
-                ExecuteCommand($"nuget install {engineName} -DirectDownload -NoCache -NonInteractive -OutputDirectory {currentPackagesPath} -Source {AzureFeed}", false);
+                ExecuteCommand($"nuget install {engineName} -DirectDownload -NoCache -NonInteractive -OutputDirectory {currentPackagesPath} -Source {AzureFeed}", true);
                 string currentNugetDll = Directory.GetFiles(currentPackagesPath, $"{engineName}.dll", SearchOption.AllDirectories).FirstOrDefault();
                 currentEngineFvi = FileVersionInfo.GetVersionInfo(currentNugetDll);
-                Console.WriteLine($"{engineName} version from nuget: {currentEngineFvi.FileVersion}");
+                Console.WriteLine($"\n{engineName} version from nuget: {currentEngineFvi.FileVersion}");
             }
             catch
             {
-                Console.WriteLine($"{engineName} version from nuget: DOES NOT EXIST");
+                Console.WriteLine($"\n{engineName} version from nuget: DOES NOT EXIST");
             }
 
             // Get the version info of the newest engine dll
             FileVersionInfo newestEngineFvi = FileVersionInfo.GetVersionInfo(Path.Combine(DownloadsDirectory, SotMInstallEngineSubdirectory, $"{engineName}.dll"));
-            Console.WriteLine($"\n{engineName} version from install: {newestEngineFvi.FileVersion}");
+            Console.WriteLine($"{engineName} version from install: {newestEngineFvi.FileVersion}");
 
             // If the newest engine version is greater than the current engine version...
             if (currentEngineFvi == null
