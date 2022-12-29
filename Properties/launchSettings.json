@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "UpdateSotMEngineNuGetPackages": {
+      "commandName": "Project",
+      "commandLineArgs": "\"DiffidentDeckard\" \"MeloGrunty_42\" \"https://pkgs.dev.azure.com/diffidentdeckard/_packaging/TESTFEED2/nuget/v3/index.json\""
+    }
+  }
+}
