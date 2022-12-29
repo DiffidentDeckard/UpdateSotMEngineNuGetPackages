@@ -47,16 +47,16 @@ namespace UpdateSotMEngineNuGetPackages
             bool ecUpdated = UpdateSotMEngineNugetPackage(EngineCommon);
             bool seUpdated = UpdateSotMEngineNugetPackage(SentinelsEngine);
 
-            // If either package was updated, set the variable to true
-            if (ecUpdated || seUpdated)
+            if (ecUpdated)
             {
-                ExecuteCommand("echo ##vso[task.setvariable variable=NugetPackageUpdated;]true");
-                Console.WriteLine("NuGet package updated, setting 'NugetPackageUpdated' to true.");
+                ExecuteCommand("echo ##vso[task.setvariable variable=EngineCommonUpdated;]true");
+                Console.WriteLine("EngineCommon NuGet package updated Successfully.");
             }
-            else
+
+            if (seUpdated)
             {
-                ExecuteCommand("echo ##vso[task.setvariable variable=NugetPackageUpdated;]false");
-                Console.WriteLine("No NuGet package updated, setting 'NugetPackageUpdated' to false.");
+                ExecuteCommand("echo ##vso[task.setvariable variable=SentinelsEngineUpdated;]true");
+                Console.WriteLine("SentinelsEngine NuGet package updated Successfully.");
             }
         }
 
