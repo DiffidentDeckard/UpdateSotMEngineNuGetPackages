@@ -52,11 +52,19 @@ namespace UpdateSotMEngineNuGetPackages
                 ExecuteCommand("echo ##vso[task.setvariable variable=EngineCommonUpdated;]true");
                 Console.WriteLine("EngineCommon NuGet package updated Successfully.");
             }
+            else
+            {
+                ExecuteCommand("echo ##vso[task.setvariable variable=EngineCommonUpdated;]false");
+            }
 
             if (seUpdated)
             {
                 ExecuteCommand("echo ##vso[task.setvariable variable=SentinelsEngineUpdated;]true");
                 Console.WriteLine("SentinelsEngine NuGet package updated Successfully.");
+            }
+            else
+            {
+                ExecuteCommand("echo ##vso[task.setvariable variable=SentinelsEngineUpdated;]false");
             }
         }
 
