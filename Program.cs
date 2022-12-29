@@ -14,34 +14,42 @@ namespace UpdateSotMEngineNuGetPackages
         private const string SteamCmd = "SteamCMD";
         private const string SteamCmdDownloadUrl = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip";
         private const string SotMInstallEngineSubdirectory = $"{SteamCmd}\\steamapps\\common\\Sentinels of the Multiverse\\Sentinels_Data\\Managed";
+
+        private static string SteamUsername;
+        private static string SteamPassword;
+        private static string ArtifactsDirectory;
+        private static string AzureFeed;
         private static string DownloadsDirectory;
 
         static void Main(string[] args)
         {
             // Get args
-            if (args.Length < 3)
+            if (args.Length < 4)
             {
                 throw new ArgumentException("Not enough arguments");
             }
 
-            string SteamUsername = args[0];
+            SteamUsername = args[0];
             Console.WriteLine($"{nameof(SteamUsername)}: {SteamUsername}");
 
-            string SteamPassword = args[1];
+            SteamPassword = args[1];
             Console.WriteLine($"{nameof(SteamPassword)}: {SteamPassword}");
 
-            string AzureFeed = args[2];
+            ArtifactsDirectory = args[2];
+            Console.WriteLine($"{nameof(ArtifactsDirectory)}: {ArtifactsDirectory}");
+
+            AzureFeed = args[3];
             Console.WriteLine($"{nameof(AzureFeed)}: {AzureFeed}");
 
             DownloadsDirectory = SHGetKnownFolderPath(new Guid("374DE290-123F-4565-9164-39C4925E467B"), 0);
             Console.WriteLine($"{nameof(DownloadsDirectory)}: {DownloadsDirectory}\n");
 
             // Install Sentinels of the Multiverse locally
-            InstallSentinelsOfTheMultiverse(SteamUsername, SteamPassword);
+            InstallSentinelsOfTheMultiverse();
 
             // Update both engine nuget packages
-            bool ecUpdated = UpdateSotMEngineNugetPackage(AzureFeed, EngineCommon);
-            bool seUpdated = UpdateSotMEngineNugetPackage(AzureFeed, SentinelsEngine);
+            bool ecUpdated = UpdateSotMEngineNugetPackage(EngineCommon);
+            bool seUpdated = UpdateSotMEngineNugetPackage(SentinelsEngine);
 
             // If either package was updated, set the variable to true
             if (ecUpdated || seUpdated)
@@ -54,7 +62,7 @@ namespace UpdateSotMEngineNuGetPackages
             }
         }
 
-        private static void InstallSentinelsOfTheMultiverse(string steamUsername, string steamPassword)
+        private static void InstallSentinelsOfTheMultiverse()
         {
             // Download and install SteamCMD
             Console.WriteLine("Downloading SteamCMD.zip...");
@@ -68,32 +76,19 @@ namespace UpdateSotMEngineNuGetPackages
             // Use SteamCMD to install Sentinels of the Multiverse
             Console.WriteLine("Installing Sentinels of the Multiverse...\n");
             string SteamCmdExe = Path.Combine(SteamCmdPath, $"{SteamCmd}.exe");
-            ExecuteCommand($"{SteamCmdExe} +login {steamUsername} {steamPassword} +app_update {SotMSteamAppID} -validate +quit");
+            ExecuteCommand($"{SteamCmdExe} +login {SteamUsername} {SteamPassword} +app_update {SotMSteamAppID} -validate +quit");
         }
 
-        private static bool UpdateSotMEngineNugetPackage(string azureFeed, string engineName)
+        private static bool UpdateSotMEngineNugetPackage(string engineName)
         {
-            // Attempt to download the current nuget package for the engine
-            string currentPackagesPath = Path.Combine(DownloadsDirectory, "Current");
-            ExecuteCommand($"nuget install {engineName} -DirectDownload -NoCache -NonInteractive -OutputDirectory {currentPackagesPath} -Source {azureFeed}");
-
             // Get the version info of the newest engine dll
             FileVersionInfo newestEngineFvi = FileVersionInfo.GetVersionInfo(Path.Combine(DownloadsDirectory, SotMInstallEngineSubdirectory, $"{engineName}.dll"));
             Console.WriteLine($"\n{engineName} version from install: {newestEngineFvi.FileVersion}");
 
-            // Current engine version
-            FileVersionInfo currentEngineFvi = null;
-            try
-            {
-                // Get its version from the dll
-                string currentNugetDll = Directory.GetFiles(currentPackagesPath, $"{engineName}.dll", SearchOption.AllDirectories).Single();
-                currentEngineFvi = FileVersionInfo.GetVersionInfo(currentNugetDll);
-                Console.WriteLine($"{engineName} version from nuget: {currentEngineFvi.FileVersion}");
-            }
-            catch
-            {
-                Console.WriteLine($"{engineName} version from nuget: DOES NOT EXIST");
-            }
+            // Get the version info of the current engine dll
+            string nugetEngineDll = Directory.GetFiles(ArtifactsDirectory, $"{engineName}.dll", SearchOption.AllDirectories).SingleOrDefault();
+            FileVersionInfo currentEngineFvi = String.IsNullOrWhiteSpace(nugetEngineDll) ? null : FileVersionInfo.GetVersionInfo(nugetEngineDll);
+            Console.WriteLine($"\n{engineName} version from nuget: {newestEngineFvi?.FileVersion ?? "NOT FOUND"}");
 
             // If the newest engine version is greater than the current engine version...
             if (true || currentEngineFvi == null
@@ -102,7 +97,7 @@ namespace UpdateSotMEngineNuGetPackages
                 || newestEngineFvi.FileBuildPart > currentEngineFvi.FileBuildPart)
             {
                 // Update the NuGet package
-                CreateAndPublishNuGetPackage(azureFeed, engineName);
+                CreateAndPublishNuGetPackage(engineName);
                 return true;
             }
             else
@@ -113,7 +108,7 @@ namespace UpdateSotMEngineNuGetPackages
             }
         }
 
-        private static void CreateAndPublishNuGetPackage(string azureFeed, string engineName)
+        private static void CreateAndPublishNuGetPackage(string engineName)
         {
             // Create nuspec file for this engine package
             string nuspecFile = CreateEngineNuspecFile(engineName);
@@ -122,7 +117,7 @@ namespace UpdateSotMEngineNuGetPackages
             ExecuteCommand($"nuget pack {nuspecFile} -OutputDirectory {Path.Combine(DownloadsDirectory, "Staging")} -OutputFileNamesWithoutVersion");
 
             // Publish the nuget package
-            ExecuteCommand($"nuget push -Source {azureFeed} -ApiKey az {Path.ChangeExtension(nuspecFile, "nupkg")}");
+            ExecuteCommand($"nuget push -Source {AzureFeed} -ApiKey az {Path.ChangeExtension(nuspecFile, "nupkg")}");
         }
 
         private static string CreateEngineNuspecFile(string engineName)
