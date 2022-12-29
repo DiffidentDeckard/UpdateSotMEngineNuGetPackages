@@ -19,8 +19,6 @@ namespace UpdateSotMEngineNuGetPackages
         private static string SteamPassword;
         private static string AzureFeed;
         private static string DownloadsDirectory;
-        private static string ArtifactsDirectory;
-        private static string ArtifactStagingDirectory;
 
         static void Main(string[] args)
         {
@@ -38,12 +36,6 @@ namespace UpdateSotMEngineNuGetPackages
 
             AzureFeed = args[2];
             Console.WriteLine($"{nameof(AzureFeed)}: {AzureFeed}");
-
-            ArtifactsDirectory = args[3];
-            Console.WriteLine($"{nameof(ArtifactsDirectory)}: {ArtifactsDirectory}");
-
-            ArtifactStagingDirectory = args[4];
-            Console.WriteLine($"{nameof(ArtifactStagingDirectory)}: {ArtifactStagingDirectory}");
 
             DownloadsDirectory = SHGetKnownFolderPath(new Guid("374DE290-123F-4565-9164-39C4925E467B"), 0);
             Console.WriteLine($"{nameof(DownloadsDirectory)}: {DownloadsDirectory}\n");
@@ -87,14 +79,27 @@ namespace UpdateSotMEngineNuGetPackages
 
         private static bool UpdateSotMEngineNugetPackage(string engineName)
         {
+            // Attempt to download the current nuget package for the engine
+            string currentPackagesPath = Path.Combine(DownloadsDirectory, "Current");
+            ExecuteCommand($"nuget install {engineName} -DirectDownload -NoCache -NonInteractive -OutputDirectory {currentPackagesPath} -Source {AzureFeed}");
+
             // Get the version info of the newest engine dll
             FileVersionInfo newestEngineFvi = FileVersionInfo.GetVersionInfo(Path.Combine(DownloadsDirectory, SotMInstallEngineSubdirectory, $"{engineName}.dll"));
             Console.WriteLine($"\n{engineName} version from install: {newestEngineFvi.FileVersion}");
 
-            // Get the version info of the current engine dll
-            string nugetEngineDll = Directory.GetFiles(ArtifactsDirectory, $"{engineName}.dll", SearchOption.AllDirectories).SingleOrDefault();
-            FileVersionInfo currentEngineFvi = String.IsNullOrWhiteSpace(nugetEngineDll) ? null : FileVersionInfo.GetVersionInfo(nugetEngineDll);
-            Console.WriteLine($"\n{engineName} version from nuget: {newestEngineFvi?.FileVersion ?? "NOT FOUND"}");
+            // Current engine version
+            FileVersionInfo currentEngineFvi = null;
+            try
+            {
+                // Get its version from the dll
+                string currentNugetDll = Directory.GetFiles(currentPackagesPath, $"{engineName}.dll", SearchOption.AllDirectories).First();
+                currentEngineFvi = FileVersionInfo.GetVersionInfo(currentNugetDll);
+                Console.WriteLine($"{engineName} version from nuget: {currentEngineFvi.FileVersion}");
+            }
+            catch
+            {
+                Console.WriteLine($"{engineName} version from nuget: DOES NOT EXIST");
+            }
 
             // If the newest engine version is greater than the current engine version...
             if (currentEngineFvi == null
@@ -103,7 +108,7 @@ namespace UpdateSotMEngineNuGetPackages
                 || newestEngineFvi.FileBuildPart > currentEngineFvi.FileBuildPart)
             {
                 // Update the NuGet package
-                CreateNuGetPackage(engineName);
+                CreateAndPublishNuGetPackage(engineName);
                 return true;
             }
             else
@@ -114,13 +119,16 @@ namespace UpdateSotMEngineNuGetPackages
             }
         }
 
-        private static void CreateNuGetPackage(string engineName)
+        private static void CreateAndPublishNuGetPackage(string engineName)
         {
             // Create nuspec file for this engine package
             string nuspecFile = CreateEngineNuspecFile(engineName);
 
             // Use the nuspec file to create the nuget package
-            ExecuteCommand($"nuget pack {nuspecFile} -OutputDirectory {ArtifactStagingDirectory} -OutputFileNamesWithoutVersion");
+            ExecuteCommand($"nuget pack {nuspecFile} -OutputDirectory {Path.Combine(DownloadsDirectory, "Staging")} -OutputFileNamesWithoutVersion");
+
+            // Publish the nuget package
+            ExecuteCommand($"nuget push -Source {AzureFeed} -ApiKey az {Path.ChangeExtension(nuspecFile, "nupkg")} -SkipDuplicate");
         }
 
         private static string CreateEngineNuspecFile(string engineName)
@@ -128,7 +136,9 @@ namespace UpdateSotMEngineNuGetPackages
             Console.WriteLine("Creating NuSpec file...");
             string EngineDll = Path.Combine(DownloadsDirectory, SotMInstallEngineSubdirectory, $"{engineName}.dll");
             FileVersionInfo EngineFvi = FileVersionInfo.GetVersionInfo(EngineDll);
-            string nuspecFile = Path.Combine(ArtifactStagingDirectory, $"{engineName}.nuspec");
+            string StagingDirectory = Path.Combine(DownloadsDirectory, "Staging");
+            Directory.CreateDirectory(StagingDirectory);
+            string nuspecFile = Path.Combine(StagingDirectory, $"{engineName}.nuspec");
 
             XmlWriterSettings xws = new XmlWriterSettings();
             xws.Async = false;
