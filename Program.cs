@@ -80,19 +80,12 @@ namespace UpdateSotMEngineNuGetPackages
         private static bool UpdateSotMEngineNugetPackage(string engineName)
         {
             // Attempt to download the current nuget package for the engine
-            string currentPackagesPath = Path.Combine(DownloadsDirectory, "Current");
-            ExecuteCommand($"nuget install {engineName} -DirectDownload -NoCache -NonInteractive -OutputDirectory {currentPackagesPath} -Source {AzureFeed}");
-
-            // Get the version info of the newest engine dll
-            FileVersionInfo newestEngineFvi = FileVersionInfo.GetVersionInfo(Path.Combine(DownloadsDirectory, SotMInstallEngineSubdirectory, $"{engineName}.dll"));
-            Console.WriteLine($"\n{engineName} version from install: {newestEngineFvi.FileVersion}");
-
-            // Current engine version
             FileVersionInfo currentEngineFvi = null;
             try
             {
-                // Get its version from the dll
-                string currentNugetDll = Directory.GetFiles(currentPackagesPath, $"{engineName}.dll", SearchOption.AllDirectories).First();
+                string currentPackagesPath = Path.Combine(DownloadsDirectory, "Current");
+                ExecuteCommand($"nuget install {engineName} -DirectDownload -NoCache -NonInteractive -OutputDirectory {currentPackagesPath} -Source {AzureFeed}", false);
+                string currentNugetDll = Directory.GetFiles(currentPackagesPath, $"{engineName}.dll", SearchOption.AllDirectories).FirstOrDefault();
                 currentEngineFvi = FileVersionInfo.GetVersionInfo(currentNugetDll);
                 Console.WriteLine($"{engineName} version from nuget: {currentEngineFvi.FileVersion}");
             }
@@ -100,6 +93,10 @@ namespace UpdateSotMEngineNuGetPackages
             {
                 Console.WriteLine($"{engineName} version from nuget: DOES NOT EXIST");
             }
+
+            // Get the version info of the newest engine dll
+            FileVersionInfo newestEngineFvi = FileVersionInfo.GetVersionInfo(Path.Combine(DownloadsDirectory, SotMInstallEngineSubdirectory, $"{engineName}.dll"));
+            Console.WriteLine($"\n{engineName} version from install: {newestEngineFvi.FileVersion}");
 
             // If the newest engine version is greater than the current engine version...
             if (currentEngineFvi == null
@@ -187,7 +184,7 @@ namespace UpdateSotMEngineNuGetPackages
             }
         }
 
-        private static void ExecuteCommand(string command)
+        private static void ExecuteCommand(string command, bool writeToConsole = true)
         {
             Process p = new Process();
             p.StartInfo.FileName = "cmd.exe";
@@ -196,9 +193,12 @@ namespace UpdateSotMEngineNuGetPackages
             p.StartInfo.CreateNoWindow = true;
             p.Start();
 
-            while (!p.StandardOutput.EndOfStream)
+            if (writeToConsole)
             {
-                Console.WriteLine(p.StandardOutput.ReadLine());
+                while (!p.StandardOutput.EndOfStream)
+                {
+                    Console.WriteLine(p.StandardOutput.ReadLine());
+                }
             }
         }
 
