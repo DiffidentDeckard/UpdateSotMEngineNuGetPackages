@@ -58,12 +58,12 @@ namespace UpdateSotMEngineNuGetPackages
             // If either package was updated, set the variable to true
             if (ecUpdated || seUpdated)
             {
-                ExecuteCommand("echo \"##vso[task.setvariable variable=NugetPackageUpdated;]true\"");
+                ExecuteCommand("echo ##vso[task.setvariable variable=NugetPackageUpdated;]true");
                 Console.WriteLine("NuGet package updated, setting 'NugetPackageUpdated' to true.");
             }
             else
             {
-                ExecuteCommand("echo \"##vso[task.setvariable variable=NugetPackageUpdated;]false\"");
+                ExecuteCommand("echo ##vso[task.setvariable variable=NugetPackageUpdated;]false");
                 Console.WriteLine("No NuGet package updated, setting 'NugetPackageUpdated' to false.");
             }
         }
