@@ -58,11 +58,13 @@ namespace UpdateSotMEngineNuGetPackages
             // If either package was updated, set the variable to true
             if (ecUpdated || seUpdated)
             {
-
+                ExecuteCommand("Write-Host \"##vso[task.setvariable variable=NugetPackageUpdated;]true\"");
+                Console.WriteLine("NuGet package updated, setting 'NugetPackageUpdated' to true.");
             }
             else
             {
-
+                ExecuteCommand("Write-Host \"##vso[task.setvariable variable=NugetPackageUpdated;]false\"");
+                Console.WriteLine("No NuGet package updated, setting 'NugetPackageUpdated' to false.");
             }
         }
 
